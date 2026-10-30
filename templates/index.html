@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUMPLOVE - Multi-User</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
+</head>
+<body class="bg-[#0b0f19] text-slate-100 min-h-screen pb-32 flex justify-center items-center">
+    
+    <!-- หน้าจอเลือก / สร้าง User ID (แสดงเมื่อยังไม่ได้เลือกบัญชี) -->
+    <div id="loginScreen" class="fixed inset-0 bg-[#0b0f19] z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-[32px] p-8 flex flex-col gap-6 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-lg shadow-indigo-500/40 text-white font-bold">
+                💎
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-white">เลือกบัญชีผู้ใช้</h1>
+                <p class="text-xs text-slate-400 mt-1">ข้อมูลการเงินของแต่ละคนจะแยกออกจากกัน</p>
+            </div>
+
+            <div id="accountListContainer" class="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                <!-- รายชื่อบัญชีจะถูกโหลดมาแสดงที่นี่ -->
+            </div>
+
+            <div class="flex flex-col gap-2 pt-2 border-t border-slate-800">
+                <input type="text" id="newAccountName" placeholder="หรือสร้างชื่อผู้ใช้ใหม่..." 
+                    class="bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-2xl px-4 py-3 focus:outline-none focus:border-indigo-500">
+                <button onclick="createAndSelectAccount()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-2xl text-xs transition shadow-lg shadow-indigo-600/30">
+                    + สร้างและเข้าใช้งาน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- แอปหลัก (ซ่อนไว้ก่อนจนกว่าจะเลือกบัญชี) -->
+    <div id="appScreen" class="w-full max-w-md p-4 flex flex-col gap-5 hidden self-start">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-center pt-2 px-1">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 text-white font-bold text-lg">
+                    💎
+                </div>
+                <div>
+                    <p class="text-[11px] text-slate-400 font-medium">บัญชีผู้ใช้</p>
+                    <h1 id="currentAccountTitle" class="text-base font-bold tracking-tight text-white">-</h1>
+                </div>
+            </div>
+            <button onclick="logoutAccount()" class="bg-slate-800/80 border border-slate-700/80 hover:border-indigo-500 px-3 py-2 rounded-xl text-xs text-slate-300 transition shadow">
+                switch เปลี่ยนบัญชี
+            </button>
+        </div>
+
+        <div id="mainContent" class="flex flex-col gap-5"></div>
+
+    </div>
+
+    <!-- Modal เพิ่มรายการ -->
+    <div id="addModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 flex flex-col gap-4 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <h2 class="text-base font-bold text-white">➕ เพิ่มรายการใหม่</h2>
+                <button onclick="toggleAddModal(false)" class="text-slate-400 hover:text-white text-xl font-bold">×</button>
+            </div>
+
+            <button type="button" onclick="startVoiceInput()" id="micBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2 text-xs font-semibold">
+                🎤 <span id="micText">พูดบันทึกด้วยเสียงอัตโนมัติ</span>
+            </button>
+
+            <form id="txForm" class="flex flex-col gap-3.5">
+                <div class="flex gap-2 p-1.5 bg-slate-800 rounded-2xl border border-slate-700/60">
+                    <button type="button" id="modalBtnIncome" onclick="setModalType('income')" class="flex-1 py-2.5 text-xs font-bold rounded-xl transition text-slate-400">รายรับ</button>
+                    <button type="button" id="modalBtnExpense" onclick="setModalType('expense')" class="flex-1 py-2.5 text-xs font-bold rounded-xl transition bg-rose-600 text-white shadow-md">รายจ่าย</button>
+                </div>
+
+                <input type="text" id="modalTitle" placeholder="ชื่อรายการ (เช่น ค่าอาหาร, เงินเดือน)" required 
+                    class="bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm rounded-2xl p-3.5 focus:outline-none focus:border-indigo-500">
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" step="0.01" id="modalAmount" placeholder="จำนวนเงิน (฿)" required 
+                        class="bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm rounded-2xl p-3.5 focus:outline-none focus:border-indigo-500">
+                    <input type="date" id="modalDate" required 
+                        class="bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-2xl p-3.5 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <select id="modalCategory" class="bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-2xl p-3.5 focus:outline-none focus:border-indigo-500"></select>
+
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 rounded-2xl text-sm transition shadow-lg shadow-indigo-600/30 mt-1">
+                    บันทึกข้อมูล
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal แก้ไขรายการ -->
+    <div id="editModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 flex flex-col gap-4 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <h2 class="text-base font-bold text-white">✏️ แก้ไขรายการ</h2>
+                <button onclick="toggleEditModal(false)" class="text-slate-400 hover:text-white text-xl font-bold">×</button>
+            </div>
+
+            <form id="editForm" class="flex flex-col gap-3.5">
+                <input type="hidden" id="editId">
+                <div class="flex gap-2 p-1.5 bg-slate-800 rounded-2xl border border-slate-700/60">
+                    <button type="button" id="editBtnIncome" onclick="setEditType('income')" class="flex-1 py-2.5 text-xs font-bold rounded-xl transition text-slate-400">รายรับ</button>
+                    <button type="button" id="editBtnExpense" onclick="setEditType('expense')" class="flex-1 py-2.5 text-xs font-bold rounded-xl transition bg-rose-600 text-white shadow-md">รายจ่าย</button>
+                </div>
+
+                <input type="text" id="editTitle" placeholder="ชื่อรายการ" required 
+                    class="bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-2xl p-3.5 focus:outline-none focus:border-indigo-500">
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" step="0.01" id="editAmount" placeholder="จำนวนเงิน (฿)" required 
+                        class="bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-2xl p-3.5 focus:outline-none focus:border-indigo-500">
+                    <input type="date" id="editDate" required 
+                        class="bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-2xl p-3.5 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <select id="editCategory" class="bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-2xl p-3.5 focus:outline-none focus:border-indigo-500"></select>
+
+                <div class="flex gap-2 mt-2">
+                    <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 rounded-2xl text-sm transition shadow-lg shadow-indigo-600/30">
+                        บันทึกการแก้ไข
+                    </button>
+                    <button type="button" onclick="deleteCurrentEditTx()" class="bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white font-semibold px-5 py-3.5 rounded-2xl text-sm transition border border-rose-500/30">
+                        ลบ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- เมนูด้านล่าง -->
+    <div id="bottomNav" class="fixed bottom-6 left-0 right-0 flex justify-center px-4 z-40 hidden">
+        <div class="relative bg-[#131b2e]/95 backdrop-blur-2xl border border-slate-700/80 w-full max-w-md h-16 rounded-full shadow-2xl flex justify-around items-center px-2">
+            
+            <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center justify-center flex-1 text-indigo-400 transition">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                <span class="text-[10px] font-medium mt-0.5">หน้าแรก</span>
+            </button>
+
+            <button onclick="switchTab('transactions')" id="nav-transactions" class="flex flex-col items-center justify-center flex-1 text-slate-400 hover:text-slate-200 transition">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+                <span class="text-[10px] font-medium mt-0.5">รายการ</span>
+            </button>
+
+            <div class="flex-1 flex justify-center relative">
+                <button onclick="toggleAddModal(true)" class="absolute -top-7 w-14 h-14 bg-gradient-to-tr from-indigo-600 to-violet-500 hover:scale-105 text-white rounded-full shadow-lg shadow-indigo-500/40 flex items-center justify-center text-2xl font-bold transition-all border-4 border-[#0b0f19]">
+                    +
+                </button>
+            </div>
+
+            <button onclick="switchTab('summary')" id="nav-summary" class="flex flex-col items-center justify-center flex-1 text-slate-400 hover:text-slate-200 transition">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M11 2v20c-5.07-.5-9-4.79-9-10-3.93-9.5 9-10zm2 0v9h9c-.83-4.94-4.76-8.83-9-9zm0 11v9c4.24-.17 8.17-4.06 9-9h-9z"/></svg>
+                <span class="text-[10px] font-medium mt-0.5">สรุป</span>
+            </button>
+
+            <button onclick="switchTab('categories')" id="nav-categories" class="flex flex-col items-center justify-center flex-1 text-slate-400 hover:text-slate-200 transition">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
+                <span class="text-[10px] font-medium mt-0.5">ประเภท</span>
+            </button>
+
+        </div>
+    </div>
+
+    <script>
+        let currentAccount = localStorage.getItem('currentAccount') || '';
+        let currentTab = 'home';
+        let summaryMode = 'monthly';
+        let modalType = 'expense';
+        let editType = 'expense';
+        let allData = { transactions: [], categories: [] };
+
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        let selectedMonth = `${year}-${month}`;
+        let txFilterMonth = `${year}-${month}`;
+        document.getElementById('modalDate').valueAsDate = now;
+
+        async function fetchAccounts() {
+            const res = await fetch('/api/accounts');
+            const data = await res.json();
+            const container = document.getElementById('accountListContainer');
+            container.innerHTML = '';
+
+            if (data.accounts.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500 py-2">ยังไม่มีบัญชี สร้างใหม่ด้านล่าง</p>';
+            } else {
+                data.accounts.forEach(acc => {
+                    container.innerHTML += `
+                        <button onclick="selectAccount('${acc}')" class="w-full bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-white py-3 px-4 rounded-2xl text-sm font-semibold transition flex justify-between items-center">
+                            <span>👤 ${acc}</span>
+                            <span class="text-xs text-indigo-400">เข้าใช้งาน ➔</span>
+                        </button>
+                    `;
+                });
+            }
+
+            if (currentAccount && data.accounts.includes(currentAccount)) {
+                enterApp(currentAccount);
+            } else {
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('appScreen').classList.add('hidden');
+                document.getElementById('bottomNav').classList.add('hidden');
+            }
+        }
+
+        async function createAndSelectAccount() {
+            const name = document.getElementById('newAccountName').value.trim();
+            if (!name) return;
+
+            const res = await fetch('/api/accounts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+
+            if (res.ok || res.status === 400) {
+                selectAccount(name);
+            } else {
+                alert('เกิดข้อผิดพลาด');
+            }
+        }
+
+        function selectAccount(acc) {
+            currentAccount = acc;
+            localStorage.setItem('currentAccount', acc);
+            enterApp(acc);
+        }
+
+        function logoutAccount() {
+            localStorage.removeItem('currentAccount');
+            currentAccount = '';
+            fetchAccounts();
+        }
+
+        function enterApp(acc) {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appScreen').classList.remove('hidden');
+            document.getElementById('bottomNav').classList.remove('hidden');
+            document.getElementById('currentAccountTitle').textContent = acc;
+            loadData();
+        }
+
+        function setModalType(type) {
+            modalType = type;
+            const btnInc = document.getElementById('modalBtnIncome');
+            const btnExp = document.getElementById('modalBtnExpense');
+            if (type === 'income') {
+                btnInc.className = "flex-1 py-2.5 text-xs font-bold rounded-xl transition bg-emerald-600 text-white shadow-md";
+                btnExp.className = "flex-1 py-2.5 text-xs font-bold rounded-xl transition text-slate-400";
+            } else {
+                btnExp.className = "flex-1 py-2.5 text-xs font-bold rounded-xl transition bg-rose-600 text-white shadow-md";
+                btnInc.className = "flex-1 py-2.5 text-xs font-bold rounded-xl transition text-slate-400";
+            }
+        }
+
+        function setEditType(type) {
+            editType = type;
+            const btnInc = document.getElementById('editBtnIncome');
+            const btnExp = document.getElementById('editBtnExpense');
+            if (type === 'income') {
+                btnInc.className = "flex-1 py-2.5 text-xs font-bold rounded-xl transition bg-emerald-600 text-white shadow-md";
+                btnExp.className = "flex-1 py-2.5 text-xs font-bold rounded-xl transition text-slate-400";
+            } else {
+                btnExp.className = "flex-1 py-2.5 text-xs font-bold rounded-xl transition bg-rose-600 text-white shadow-md";
+                btnInc.className = "flex-1 py-2.5 text-xs font-bold rounded-xl transition text-slate-400";
+            }
+        }
+
+        function toggleAddModal(show) {
+            const modal = document.getElementById('addModal');
+            if (show) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }
+        }
+
+        function toggleEditModal(show, tx = null) {
+            const modal = document.getElementById('editModal');
+            if (show && tx) {
+                document.getElementById('editId').value = tx.id;
+                document.getElementById('editTitle').value = tx.title;
+                document.getElementById('editAmount').value = tx.amount;
+                document.getElementById('editDate').value = tx.date;
+                setEditType(tx.type);
+                
+                const catSelect = document.getElementById('editCategory');
+                catSelect.innerHTML = '';
+                allData.categories.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    if (cat === tx.category) opt.selected = true;
+                    catSelect.appendChild(opt);
+                });
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            ['home', 'transactions', 'summary', 'categories'].forEach(t => {
+                const btn = document.getElementById(`nav-${t}`);
+                if (t === tab) {
+                    btn.className = "flex flex-col items-center justify-center flex-1 text-indigo-400 transition";
+                } else {
+                    btn.className = "flex flex-col items-center justify-center flex-1 text-slate-400 hover:text-slate-200 transition";
+                }
+            });
+            renderContent();
+        }
+
+        async function loadData() {
+            const res = await fetch(`/api/data?account=${currentAccount}`);
+            allData = await res.json();
+
+            const catSelect = document.getElementById('modalCategory');
+            catSelect.innerHTML = '';
+            allData.categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                catSelect.appendChild(opt);
+            });
+
+            renderContent();
+        }
+
+        function getCategoryIcon(cat) {
+            if (cat.includes('อาหาร')) return '🍜';
+            if (cat.includes('เดินทาง')) return '✈️';
+            if (cat.includes('ช้อป')) return '🛍️';
+            if (cat.includes('เงินเดือน')) return '💰';
+            if (cat.includes('บ้าน')) return '🏠';
+            if (cat.includes('อินเตอร์เน็ต')) return '🌐';
+            return '📂';
+        }
+
+        function renderContent() {
+            const container = document.getElementById('mainContent');
+            
+            let totalInc = 0, totalExp = 0;
+            allData.transactions.forEach(tx => {
+                if (tx.type === 'income') totalInc += tx.amount;
+                else totalExp += tx.amount;
+            });
+            const balance = totalInc - totalExp;
+
+            if (currentTab === 'home') {
+                container.innerHTML = `
+                    <div class="bg-gradient-to-br from-indigo-950/80 via-slate-900 to-slate-900 border border-indigo-500/30 p-6 rounded-[28px] shadow-2xl relative overflow-hidden">
+                        <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
+                        <p class="text-xs text-slate-400 font-medium">ยอดคงเหลือทั้งหมด</p>
+                        <p class="text-3xl font-extrabold text-white mt-1">${balance.toLocaleString()} ฿</p>
+                        
+                        <div class="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                            <span>บัญชี: ${currentAccount}</span>
+                            <span class="text-emerald-400 font-semibold flex items-center gap-1">🔒 แยกข้อมูลอิสระ</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-slate-900/80 border border-slate-800/80 p-4 rounded-3xl shadow-lg">
+                            <p class="text-xs text-emerald-400 font-medium mb-1">รายรับ</p>
+                            <p class="text-xl font-bold text-emerald-400">${totalInc.toLocaleString()} ฿</p>
+                        </div>
+                        <div class="bg-slate-900/80 border border-slate-800/80 p-4 rounded-3xl shadow-lg">
+                            <p class="text-xs text-rose-400 font-medium mb-1">รายจ่าย</p>
+                            <p class="text-xl font-bold text-rose-400">${totalExp.toLocaleString()} ฿</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-3 py-1">
+                        <button onclick="toggleAddModal(true)" class="flex flex-col items-center gap-2 p-3 bg-slate-900/60 hover:bg-slate-800 border border-slate-800 rounded-3xl transition">
+                            <div class="w-10 h-10 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-base">➕</div>
+                            <span class="text-[11px] font-medium text-slate-300">เพิ่มรายการ</span>
+                        </button>
+                        <button onclick="switchTab('transactions')" class="flex flex-col items-center gap-2 p-3 bg-slate-900/60 hover:bg-slate-800 border border-slate-800 rounded-3xl transition">
+                            <div class="w-10 h-10 rounded-2xl bg-blue-600/20 text-blue-400 flex items-center justify-center text-base">📋</div>
+                            <span class="text-[11px] font-medium text-slate-300">ประวัติ</span>
+                        </button>
+                        <button onclick="switchTab('summary')" class="flex flex-col items-center gap-2 p-3 bg-slate-900/60 hover:bg-slate-800 border border-slate-800 rounded-3xl transition">
+                            <div class="w-10 h-10 rounded-2xl bg-amber-600/20 text-amber-400 flex items-center justify-center text-base">📊</div>
+                            <span class="text-[11px] font-medium text-slate-300">สถิติ</span>
+                        </button>
+                        <button onclick="switchTab('categories')" class="flex flex-col items-center gap-2 p-3 bg-slate-900/60 hover:bg-slate-800 border border-slate-800 rounded-3xl transition">
+                            <div class="w-10 h-10 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center text-base">⚙️</div>
+                            <span class="text-[11px] font-medium text-slate-300">จัดการ</span>
+                        </button>
+                    </div>
+
+                    <div class="flex flex-col gap-3 mt-1">
+                        <div class="flex justify-between items-center px-1">
+                            <h2 class="text-sm font-bold text-slate-200">รายการล่าสุด</h2>
+                            <button onclick="switchTab('transactions')" class="text-xs text-indigo-400 font-medium hover:underline">ดูทั้งหมด</button>
+                        </div>
+
+                        <div class="flex flex-col gap-2.5">
+                            ${allData.transactions.length === 0 ? '<div class="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl text-center text-slate-500 text-xs">ยังไม่มีรายการบันทึก</div>' : ''}
+                            ${allData.transactions.slice(0, 5).map(tx => `
+                                <div onclick='openEditById(${tx.id})' class="flex justify-between items-center p-4 bg-slate-900/80 border border-slate-800/80 rounded-3xl cursor-pointer hover:border-indigo-500/50 transition shadow-sm">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-11 h-11 rounded-2xl bg-slate-800 flex items-center justify-center text-lg shadow-inner">
+                                            ${getCategoryIcon(tx.category)}
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-sm text-white">${tx.title}</p>
+                                            <p class="text-xs text-slate-400 mt-0.5">${tx.category} • ${tx.date}</p>
+                                        </div>
+                                    </div>
+                                    <span class="font-bold text-sm ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}">
+                                        ${tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString()} ฿
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } 
+            else if (currentTab === 'transactions') {
+                const filteredTxs = allData.transactions.filter(tx => tx.date.startsWith(txFilterMonth));
+
+                container.innerHTML = `
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-center px-1">
+                            <h2 class="text-sm font-bold text-slate-200">📋 ประวัติรายการ (แยกรายเดือน)</h2>
+                        </div>
+
+                        <div class="flex items-center justify-between bg-slate-900/80 border border-slate-800/80 p-3.5 rounded-3xl">
+                            <span class="text-xs text-slate-300">เลือกเดือน:</span>
+                            <input type="month" id="txMonthInput" value="${txFilterMonth}" onchange="changeTxMonth(this.value)" class="bg-slate-800 border border-slate-700 text-white text-xs rounded-2xl px-3.5 py-2 focus:outline-none">
+                        </div>
+
+                        <div class="flex flex-col gap-2.5">
+                            ${filteredTxs.length === 0 ? '<div class="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl text-center text-slate-500 text-xs">ยังไม่มีรายการในเดือนนี้</div>' : ''}
+                            ${filteredTxs.map(tx => `
+                                <div onclick='openEditById(${tx.id})' class="flex justify-between items-center p-4 bg-slate-900/80 border border-slate-800/80 rounded-3xl cursor-pointer hover:border-indigo-500/50 transition shadow-sm">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-11 h-11 rounded-2xl bg-slate-800 flex items-center justify-center text-lg shadow-inner">
+                                            ${getCategoryIcon(tx.category)}
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-sm text-white">${tx.title}</p>
+                                            <p class="text-xs text-slate-400 mt-0.5">${tx.category} • ${tx.date}</p>
+                                        </div>
+                                    </div>
+                                    <span class="font-bold text-sm ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}">
+                                        ${tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString()} ฿
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            else if (currentTab === 'summary') {
+                let targetTxs = allData.transactions;
+                if (summaryMode === 'monthly') {
+                    targetTxs = allData.transactions.filter(tx => tx.date.startsWith(selectedMonth));
+                }
+
+                let catTotals = {};
+                let totalExpFiltered = 0;
+                let totalIncFiltered = 0;
+                targetTxs.forEach(tx => {
+                    if (tx.type === 'expense') {
+                        totalExpFiltered += tx.amount;
+                        catTotals[tx.category] = (catTotals[tx.category] || 0) + tx.amount;
+                    } else {
+                        totalIncFiltered += tx.amount;
+                    }
+                });
+                const filteredBalance = totalIncFiltered - totalExpFiltered;
+
+                let sortedCategories = Object.keys(catTotals).map(cat => {
+                    return { cat: cat, amount: catTotals[cat] };
+                }).sort((a, b) => b.amount - a.amount);
+
+                const colors = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#ef4444'];
+                let cumulativePercent = 0;
+                let gradientStops = [];
+
+                sortedCategories.forEach((item, idx) => {
+                    const pct = totalExpFiltered > 0 ? (item.amount / totalExpFiltered) * 100 : 0;
+                    const start = cumulativePercent;
+                    cumulativePercent += pct;
+                    const color = colors[idx % colors.length];
+                    gradientStops.push(`${color} ${start}% ${cumulativePercent}%`);
+                });
+
+                const conicStyle = gradientStops.length > 0 ? `background: conic-gradient(${gradientStops.join(', ')});` : `background: #334155;`;
+
+                container.innerHTML = `
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-center px-1">
+                            <h2 class="text-sm font-bold text-slate-200">📊 สรุปสัดส่วนรายจ่าย</h2>
+                            <div class="flex bg-slate-900 p-1 rounded-2xl border border-slate-800">
+                                <button onclick="setSummaryMode('monthly')" class="px-3 py-1.5 text-xs font-semibold rounded-xl transition ${summaryMode === 'monthly' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400'}">รายเดือน</button>
+                                <button onclick="setSummaryMode('all')" class="px-3 py-1.5 text-xs font-semibold rounded-xl transition ${summaryMode === 'all' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400'}">ทั้งหมด</button>
+                            </div>
+                        </div>
+
+                        ${summaryMode === 'monthly' ? `
+                            <div class="flex items-center justify-between bg-slate-900/80 border border-slate-800/80 p-3.5 rounded-3xl">
+                                <span class="text-xs text-slate-300">เลือกเดือน:</span>
+                                <input type="month" id="summaryMonthInput" value="${selectedMonth}" onchange="changeSummaryMonth(this.value)" class="bg-slate-800 border border-slate-700 text-white text-xs rounded-2xl px-3.5 py-2 focus:outline-none">
+                            </div>
+                        ` : ''}
+
+                        <div class="bg-slate-900/80 border border-slate-800/80 p-6 rounded-[32px] flex flex-col items-center justify-center gap-4 shadow-xl">
+                            <div class="relative w-44 h-44 rounded-full shadow-inner flex items-center justify-center" style="${conicStyle}">
+                                <div class="absolute w-28 h-28 bg-[#0b0f19] rounded-full flex flex-col items-center justify-center shadow-lg">
+                                    <span class="text-[10px] text-slate-400 font-medium">ยอดคงเหลือ</span>
+                                    <span class="text-sm font-bold text-white mt-0.5">${filteredBalance.toLocaleString()} ฿</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900/80 border border-slate-800/80 p-4 rounded-3xl flex flex-col gap-2.5 shadow-lg">
+                            ${sortedCategories.length === 0 ? '<p class="text-slate-500 text-xs text-center py-4">ยังไม่มีข้อมูลรายจ่ายในส่วนนี้</p>' : ''}
+                            ${sortedCategories.map((item, idx) => {
+                                const pct = totalExpFiltered > 0 ? ((item.amount / totalExpFiltered) * 100).toFixed(1) : 0;
+                                const color = colors[idx % colors.length];
+                                return `
+                                    <div class="flex justify-between items-center bg-slate-800/60 p-3 rounded-2xl border border-slate-700/50">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-3.5 h-3.5 rounded-full shadow" style="background-color: ${color};"></div>
+                                            <span class="text-xs font-semibold text-slate-200">${item.cat}</span>
+                                        </div>
+                                        <span class="text-xs font-bold text-white">${item.amount.toLocaleString()} ฿ <span class="text-[10px] text-slate-400">(${pct}%)</span></span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            else if (currentTab === 'categories') {
+                container.innerHTML = `
+                    <h2 class="text-sm font-bold text-slate-200 px-1">⚙️ จัดการหมวดหมู่ (${currentAccount})</h2>
+                    <div class="bg-slate-900/80 border border-slate-800/80 p-5 rounded-3xl flex flex-col gap-4 shadow-lg">
+                        <div class="flex gap-2">
+                            <input type="text" id="newCatInput" placeholder="เพิ่มหมวดหมู่ใหม่..." 
+                                class="bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-2xl px-4 py-3 flex-1 focus:outline-none focus:border-indigo-500">
+                            <button type="button" onclick="addCategory()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 rounded-2xl text-xs font-semibold transition shadow-md">เพิ่ม</button>
+                        </div>
+                        <div class="flex flex-col gap-2 mt-1">
+                            ${allData.categories.map(cat => `
+                                <div class="bg-slate-800/50 border border-slate-700/50 px-4 py-3 rounded-2xl text-xs text-slate-200 flex items-center gap-3">
+                                    <span class="text-base">${getCategoryIcon(cat)}</span>
+                                    <span class="font-medium">${cat}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function setSummaryMode(mode) {
+            summaryMode = mode;
+            renderContent();
+        }
+
+        function changeSummaryMonth(val) {
+            selectedMonth = val;
+            renderContent();
+        }
+
+        function changeTxMonth(val) {
+            txFilterMonth = val;
+            renderContent();
+        }
+
+        function openEditById(id) {
+            const tx = allData.transactions.find(t => t.id === id);
+            if (tx) toggleEditModal(true, tx);
+        }
+
+        function startVoiceInput() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert('เบราว์เซอร์ไม่รองรับการสั่งงานด้วยเสียง');
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'th-TH';
+            
+            const micText = document.getElementById('micText');
+            micText.textContent = 'กำลังฟังเสียง...';
+            
+            recognition.onresult = function(event) {
+                const speechToText = event.results[0][0].transcript;
+                micText.textContent = 'พูดบันทึกด้วยเสียงอัตโนมัติ';
+                processVoiceText(speechToText);
+            };
+
+            recognition.onerror = function() { micText.textContent = 'พูดบันทึกด้วยเสียงอัตโนมัติ'; };
+            recognition.onend = function() { micText.textContent = 'พูดบันทึกด้วยเสียงอัตโนมัติ'; };
+            recognition.start();
+        }
+
+        function processVoiceText(text) {
+            const words = text.trim().split(' ');
+            const amount = parseFloat(words[words.length - 1]);
+            
+            if (isNaN(amount)) {
+                alert(`ได้ยินว่า: "${text}" แต่หาจำนวนเงินไม่เจอ`);
+                return;
+            }
+
+            words.pop();
+            const title = words.join(' ') || 'รายการจากเสียง';
+
+            const incomeKeywords = ['เงินเดือน', 'รายรับ', 'โบนัส', 'ขายของ', 'เงินเข้า'];
+            let detectedType = 'expense';
+            for (let kw of incomeKeywords) {
+                if (title.includes(kw)) {
+                    detectedType = 'income';
+                    break;
+                }
+            }
+            setModalType(detectedType);
+
+            let matchedCat = allData.categories.find(c => c === 'อื่นๆ') || allData.categories[0];
+            const lowerTitle = title.toLowerCase();
+
+            for (let cat of allData.categories) {
+                if (lowerTitle.includes(cat.toLowerCase()) || cat.toLowerCase().includes(lowerTitle)) {
+                    matchedCat = cat;
+                    break;
+                }
+            }
+
+            document.getElementById('modalTitle').value = title;
+            document.getElementById('modalAmount').value = amount;
+            if (matchedCat) document.getElementById('modalCategory').value = matchedCat;
+        }
+
+        document.getElementById('txForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                account: currentAccount,
+                type: modalType,
+                title: document.getElementById('modalTitle').value,
+                amount: parseFloat(document.getElementById('modalAmount').value),
+                category: document.getElementById('modalCategory').value,
+                date: document.getElementById('modalDate').value
+            };
+
+            await fetch('/api/transactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            document.getElementById('modalTitle').value = '';
+            document.getElementById('modalAmount').value = '';
+            toggleAddModal(false);
+            loadData();
+        });
+
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const data = {
+                type: editType,
+                title: document.getElementById('editTitle', '').value,
+                amount: parseFloat(document.getElementById('editAmount').value),
+                category: document.getElementById('editCategory').value,
+                date: document.getElementById('editDate').value
+            };
+
+            await fetch(`/api/transactions/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            toggleEditModal(false);
+            loadData();
+        });
+
+        async function deleteCurrentEditTx() {
+            const id = document.getElementById('editId').value;
+            if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
+                await fetch(`/api/transactions/${id}`, { method: 'DELETE' }, );
+                toggleEditModal(false);
+                loadData();
+            }
+        }
+
+        async function addCategory() {
+            const input = document.getElementById('newCatInput');
+            const name = input.value.trim();
+            if (!name) return;
+
+            const res = await fetch('/api/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ account: currentAccount, name })
+            });
+
+            if (res.ok) {
+                input.value = '';
+                loadData();
+            } else {
+                alert('หมวดหมู่นี้มีอยู่แล้ว');
+            }
+        }
+
+        // เริ่มต้นตรวจสอบบัญชีผู้ใช้เมื่อเปิดเว็บ
+        fetchAccounts();
+    </script>
+</body>
+</html>
