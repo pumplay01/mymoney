@@ -27,10 +27,10 @@
 <body class="select-none pb-36">
   <div class="max-w-[420px] mx-auto min-h-screen relative z-10 px-4 pt-3">
     
-    <!-- 1. หน้าหลัก -->
+    <!-- หน้าหลัก -->
     <section id="view-home" class="space-y-4">
       <div class="flex justify-between items-center px-1">
-        <div><h1 class="text-2xl font-bold tracking-tight">My Money</h1><p class="text-[11px] text-slate-300">Better choices. Brighter future.</p></div>
+        <div><h1 class="text-2xl font-bold tracking-tight">My Money</h1><p class="text-[11px] text-slate-300">GitHub Cloud Storage Edition</p></div>
         <button onclick="navigate('categories')" class="w-10 h-10 rounded-full glass-card flex items-center justify-center text-slate-200"><i class="fa-solid fa-gear"></i></button>
       </div>
       <div class="glass-hero p-5">
@@ -47,11 +47,10 @@
       </div>
     </section>
 
-    <!-- 2. หน้าบันทึกด้วยเสียง & พิมพ์เอง -->
+    <!-- หน้าบันทึกด้วยเสียง & พิมพ์เอง -->
     <section id="view-voice" class="hidden space-y-4">
       <div class="flex justify-between items-center"><button onclick="navigate('home')" class="text-slate-300"><i class="fa-solid fa-xmark text-xl"></i></button><span class="font-bold text-sm">เพิ่มรายการ (รองรับเสียงพูด)</span><div class="w-5"></div></div>
       
-      <!-- ปุ่มสั่งงานด้วยเสียง -->
       <div class="glass-card p-6 text-center space-y-4">
         <div class="text-xs text-slate-300">แตะไมค์แล้วพูด เช่น <span class="text-sky-300">"จ่ายค่าอาหาร 25"</span> หรือ <span class="text-emerald-300">"เงินเดือน 3500"</span></div>
         <div class="flex justify-center py-2">
@@ -78,7 +77,7 @@
       </div>
     </section>
 
-    <!-- 3. หน้าจัดการหมวดหมู่ -->
+    <!-- หน้าจัดการหมวดหมู่ -->
     <section id="view-categories" class="hidden space-y-4">
       <div class="flex justify-between items-center"><button onclick="navigate('home')" class="text-slate-300"><i class="fa-solid fa-chevron-left text-lg"></i></button><h2 class="font-bold text-base">จัดการหมวดหมู่</h2><div class="w-5"></div></div>
       <div class="glass-card p-4 space-y-3">
@@ -94,7 +93,7 @@
       </div>
     </section>
 
-    <!-- 4. หน้าสรุปรายเดือน & ทั้งหมด -->
+    <!-- หน้าสรุปรายเดือน & ทั้งหมด -->
     <section id="view-monthly" class="hidden space-y-4">
       <div class="flex justify-between items-center"><h2 class="font-bold text-lg">สรุปการเงิน</h2><button onclick="navigate('home')" class="text-xs text-sky-400">กลับหน้าแรก</button></div>
       <div class="glass-card p-4 text-center space-y-1">
@@ -108,7 +107,7 @@
       <div id="summary-content" class="space-y-3"></div>
     </section>
 
-    <!-- 5. หน้ารายการทั้งหมด -->
+    <!-- หน้ารายการทั้งหมด -->
     <section id="view-all" class="hidden space-y-4">
       <div class="flex justify-between items-center"><h2 class="font-bold text-lg">ประวัติทั้งหมด</h2><button onclick="navigate('home')" class="text-xs text-sky-400">กลับหน้าแรก</button></div>
       <div id="all-list" class="space-y-2.5"></div>
@@ -131,7 +130,7 @@
       { id: 1, title: 'REWE', cat: 'อาหาร & เครื่องดื่ม', amount: 45.80, type: 'expense', date: 'ต.ค. 2026', rawDate: '2026-10' },
       { id: 2, title: 'เงินเดือน', cat: 'เงินเดือน', amount: 3500.00, type: 'income', date: 'ต.ค. 2026', rawDate: '2026-10' }
     ];
-    let cats = JSON.parse(localStorage.getItem('mm_cats')) || ['อาหาร & เครื่องดื่ม', 'เดินทาง', 'ช้อปปิ้ง', 'เงินเดือน', 'อื่นๆ'];
+    let cats = JSON.parse(localStorage.getItem('mm_cats')) || ['อาหาร & เครื่องดื่ม', 'เดินทาง', 'ช้อปปิ้ง', 'เงินเดือน', 'ค่าเช่าบ้าน', 'ค่าอินเตอร์เน็ต', 'ค่าโทรศัพท์', 'อื่นๆ'];
     let currentSummaryTab = 'monthly';
 
     function navigate(v) {
@@ -223,7 +222,6 @@
 
       let contentHtml = '';
       if(currentSummaryTab === 'monthly') {
-        // Group by rawDate (Month)
         let months = [...new Set(txs.map(t => t.rawDate || '2026-10'))].sort().reverse();
         contentHtml = months.map(m => {
           let mTx = txs.filter(t => (t.rawDate || '2026-10') === m);
@@ -271,7 +269,6 @@
       navigate('home');
     }
 
-    // ฟังก์ชันสั่งงานด้วยเสียง & จัดหมวดหมู่อัตโนมัติ (Smart Auto-Categorization)
     let recognition;
     function toggleSpeech() {
       if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -280,7 +277,7 @@
       }
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
-      recognition.lang = 'th-TH'; // รองรับภาษาไทย (หรือเปลี่ยนเป็น de-DE ได้ถ้าต้องการพูดเยอรมัน)
+      recognition.lang = 'th-TH';
       recognition.interimResults = false;
 
       let micBtn = document.getElementById('mic-btn');
@@ -319,30 +316,26 @@
     }
 
     function parseVoiceInput(text) {
-      // แยกตัวเงินจากคำพูด
       let numbers = text.match(/\d+(\.\d+)?/g);
       let amount = numbers ? parseFloat(numbers[0]) : 0;
       
-      // วิเคราะห์ประเภท รายรับ / รายจ่าย
       let type = 'expense';
       if(text.includes('เงินเดือน') || text.includes('รายรับ') || text.includes('ได้เงิน') || text.includes('โบนัส')) {
         type = 'income';
       }
 
-      // จัดหมวดหมู่อัตโนมัติ (Auto-Categorization) จากคีย์เวิร์ด
       let cat = 'อื่นๆ';
       let lower = text.toLowerCase();
-      if(lower.includes('rewe') || lower.includes('อาหาร') || lower.includes('กิน') || lower.includes('กาแฟ') || lower.includes('7-eleven') || lower.includes('ซุปเปอร์')) {
+      if(lower.includes('rewe') || lower.includes('อาหาร') || lower.includes('กิน') || lower.includes('กาแฟ') || lower.includes('ซุปเปอร์')) {
         cat = 'อาหาร & เครื่องดื่ม';
-      } else if(lower.includes('รถ') || lower.includes('น้ำมัน') || lower.includes('เดินทาง') ||lower.includes('ตั๋ว') || lower.includes('bsh')) {
+      } else if(lower.includes('รถ') || lower.includes('น้ำมัน') || lower.includes('เดินทาง')) {
         cat = 'เดินทาง';
-      } else if(lower.includes('ช้อป') || lower.includes('เสื้อผ้า') || lower.includes('ซื้อของ')) {
+      } else if(lower.includes('ช้อป') || lower.includes('เสื้อผ้า')) {
         cat = 'ช้อปปิ้ง';
-      } else if(lower.includes('เงินเดือน') || lower.includes('รายรับ')) {
+      } else if(lower.includes('เงินเดือน')) {
         cat = 'เงินเดือน';
       }
 
-      // นำค่าที่แกะได้ใส่ฟอร์มและบันทึกอัตโนมัติ
       document.getElementById('form-type').value = type;
       document.getElementById('form-cat').value = cat;
       document.getElementById('form-title').value = text;
