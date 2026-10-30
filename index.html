@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="My Money">
+  <title>My Money - Modern Glass</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Prompt', sans-serif; background: radial-gradient(circle at 20% 10%, #1e3a6e 0%, #0b152c 45%, #050914 100%); color: #ffffff; min-height: 100vh; overflow-x: hidden; }
+    .glass-card { background: rgba(255, 255, 255, 0.065); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.13); border-radius: 22px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25); }
+    .glass-hero { background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(16, 185, 129, 0.12) 100%); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 24px; }
+    .glass-income { background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(6, 95, 70, 0.12) 100%); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: 20px; }
+    .glass-expense { background: linear-gradient(135deg, rgba(244, 63, 94, 0.25) 0%, rgba(159, 18, 57, 0.12) 100%); border: 1px solid rgba(251, 113, 133, 0.3); border-radius: 20px; }
+    .glass-nav { background: rgba(11, 20, 42, 0.9); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .mic-glow { background: radial-gradient(circle, #60a5fa 0%, #6366f1 60%, #4f46e5 100%); box-shadow: 0 0 35px rgba(99, 102, 241, 0.6), inset 0 0 15px rgba(255, 255, 255, 0.4); }
+    .pulse-ring { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); } 70% { transform: scale(1.08); box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); } }
+    ::-webkit-scrollbar { width: 0px; background: transparent; }
+  </style>
+</head>
+<body class="select-none pb-36">
+  <div class="max-w-[420px] mx-auto min-h-screen relative z-10 px-4 pt-3">
+    
+    <!-- 1. หน้าหลัก -->
+    <section id="view-home" class="space-y-4">
+      <div class="flex justify-between items-center px-1">
+        <div><h1 class="text-2xl font-bold tracking-tight">My Money</h1><p class="text-[11px] text-slate-300">Better choices. Brighter future.</p></div>
+        <button onclick="navigate('categories')" class="w-10 h-10 rounded-full glass-card flex items-center justify-center text-slate-200"><i class="fa-solid fa-gear"></i></button>
+      </div>
+      <div class="glass-hero p-5">
+        <div class="text-xs text-slate-200">ยอดคงเหลือทั้งหมด</div>
+        <div id="home-balance" class="text-3xl font-bold mt-1.5">€ 0.00</div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass-income p-4"><div class="text-xs text-emerald-200 mb-1">รายรับ</div><div id="home-income" class="text-xl font-bold">€ 0.00</div></div>
+        <div class="glass-expense p-4"><div class="text-xs text-rose-200 mb-1">รายจ่าย</div><div id="home-expense" class="text-xl font-bold">€ 0.00</div></div>
+      </div>
+      <div>
+        <div class="flex justify-between items-center mb-2"><span class="text-sm font-semibold">รายการล่าสุด</span><button onclick="navigate('all')" class="text-xs text-sky-400">ดูทั้งหมด</button></div>
+        <div id="home-recent-list" class="space-y-2.5"></div>
+      </div>
+    </section>
+
+    <!-- 2. หน้าบันทึกด้วยเสียง & พิมพ์เอง -->
+    <section id="view-voice" class="hidden space-y-4">
+      <div class="flex justify-between items-center"><button onclick="navigate('home')" class="text-slate-300"><i class="fa-solid fa-xmark text-xl"></i></button><span class="font-bold text-sm">เพิ่มรายการ (รองรับเสียงพูด)</span><div class="w-5"></div></div>
+      
+      <!-- ปุ่มสั่งงานด้วยเสียง -->
+      <div class="glass-card p-6 text-center space-y-4">
+        <div class="text-xs text-slate-300">แตะไมค์แล้วพูด เช่น <span class="text-sky-300">"จ่ายค่าอาหาร 25"</span> หรือ <span class="text-emerald-300">"เงินเดือน 3500"</span></div>
+        <div class="flex justify-center py-2">
+          <button id="mic-btn" onclick="toggleSpeech()" class="w-20 h-20 rounded-full mic-glow text-white flex items-center justify-center text-3xl shadow-xl transition-all">
+            <i id="mic-icon" class="fa-solid fa-microphone"></i>
+          </button>
+        </div>
+        <div id="voice-status" class="text-xs text-sky-400 font-medium h-5">แตะไมค์เพื่อเริ่มพูด...</div>
+      </div>
+
+      <div class="glass-card p-5 space-y-3">
+        <div class="text-xs font-semibold text-slate-300">หรือกรอกข้อมูลเอง</div>
+        <div class="space-y-2 text-xs">
+          <label class="text-slate-400">ประเภท</label>
+          <select id="form-type" class="w-full glass-card p-3 bg-slate-900 text-white outline-none"><option value="expense">รายจ่าย</option><option value="income">รายรับ</option></select>
+          <label class="text-slate-400">หมวดหมู่</label>
+          <select id="form-cat" class="w-full glass-card p-3 bg-slate-900 text-white outline-none"></select>
+          <label class="text-slate-400">รายละเอียด</label>
+          <input id="form-title" type="text" placeholder="เช่น REWE, ค่าน้ำมัน" class="w-full glass-card p-3 bg-transparent text-white outline-none">
+          <label class="text-slate-400">จำนวนเงิน (€)</label>
+          <input id="form-amount" type="number" step="0.01" placeholder="0.00" class="w-full glass-card p-3 bg-transparent text-white font-bold outline-none">
+        </div>
+        <button onclick="saveTx()" class="w-full py-3 rounded-xl bg-indigo-500 font-bold text-xs text-white">บันทึกรายการ</button>
+      </div>
+    </section>
+
+    <!-- 3. หน้าจัดการหมวดหมู่ -->
+    <section id="view-categories" class="hidden space-y-4">
+      <div class="flex justify-between items-center"><button onclick="navigate('home')" class="text-slate-300"><i class="fa-solid fa-chevron-left text-lg"></i></button><h2 class="font-bold text-base">จัดการหมวดหมู่</h2><div class="w-5"></div></div>
+      <div class="glass-card p-4 space-y-3">
+        <div class="text-xs font-semibold text-slate-300">เพิ่มหมวดหมู่ใหม่</div>
+        <div class="flex gap-2">
+          <input id="new-cat-input" type="text" placeholder="ชื่อหมวดหมู่..." class="flex-1 glass-card p-2.5 bg-transparent text-xs text-white outline-none">
+          <button onclick="addCategory()" class="px-4 py-2 bg-sky-500 rounded-xl text-xs font-bold text-white">เพิ่ม</button>
+        </div>
+      </div>
+      <div class="space-y-2">
+        <div class="text-xs font-semibold text-slate-300 px-1">หมวดหมู่ทั้งหมด</div>
+        <div id="cat-list" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- 4. หน้าสรุปรายเดือน & ทั้งหมด -->
+    <section id="view-monthly" class="hidden space-y-4">
+      <div class="flex justify-between items-center"><h2 class="font-bold text-lg">สรุปการเงิน</h2><button onclick="navigate('home')" class="text-xs text-sky-400">กลับหน้าแรก</button></div>
+      <div class="glass-card p-4 text-center space-y-1">
+        <div class="text-xs text-slate-400">ยอดสุทธิรวมทั้งหมด</div>
+        <div id="summary-total-net" class="text-2xl font-bold text-emerald-400">€ 0.00</div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="switchSummaryTab('monthly')" id="tab-btn-monthly" class="flex-1 py-2 rounded-xl bg-sky-600 text-xs font-bold text-white">รายเดือน</button>
+        <button onclick="switchSummaryTab('all')" id="tab-btn-all" class="flex-1 py-2 rounded-xl bg-white/10 text-xs font-bold text-slate-300">ทั้งหมด</button>
+      </div>
+      <div id="summary-content" class="space-y-3"></div>
+    </section>
+
+    <!-- 5. หน้ารายการทั้งหมด -->
+    <section id="view-all" class="hidden space-y-4">
+      <div class="flex justify-between items-center"><h2 class="font-bold text-lg">ประวัติทั้งหมด</h2><button onclick="navigate('home')" class="text-xs text-sky-400">กลับหน้าแรก</button></div>
+      <div id="all-list" class="space-y-2.5"></div>
+    </section>
+  </div>
+
+  <!-- แถบเมนูด้านล่าง -->
+  <nav class="fixed bottom-6 left-4 right-4 z-40 max-w-[420px] mx-auto">
+    <div class="glass-nav px-6 py-3 flex justify-between items-center">
+      <button onclick="navigate('home')" class="text-sky-400 flex flex-col items-center"><i class="fa-solid fa-house"></i><span class="text-[10px]">หน้าแรก</span></button>
+      <button onclick="navigate('all')" class="text-slate-400 flex flex-col items-center"><i class="fa-solid fa-list"></i><span class="text-[10px]">รายการ</span></button>
+      <button onclick="navigate('voice')" class="w-12 h-12 -mt-6 rounded-full mic-glow text-white flex items-center justify-center text-xl shadow-lg"><i class="fa-solid fa-plus"></i></button>
+      <button onclick="navigate('monthly')" class="text-slate-400 flex flex-col items-center"><i class="fa-solid fa-chart-pie"></i><span class="text-[10px]">สรุป</span></button>
+      <button onclick="navigate('categories')" class="text-slate-400 flex flex-col items-center"><i class="fa-solid fa-sliders"></i><span class="text-[10px]">ประเภท</span></button>
+    </div>
+  </nav>
+
+  <script>
+    let txs = JSON.parse(localStorage.getItem('mm_tx')) || [
+      { id: 1, title: 'REWE', cat: 'อาหาร & เครื่องดื่ม', amount: 45.80, type: 'expense', date: 'ต.ค. 2026', rawDate: '2026-10' },
+      { id: 2, title: 'เงินเดือน', cat: 'เงินเดือน', amount: 3500.00, type: 'income', date: 'ต.ค. 2026', rawDate: '2026-10' }
+    ];
+    let cats = JSON.parse(localStorage.getItem('mm_cats')) || ['อาหาร & เครื่องดื่ม', 'เดินทาง', 'ช้อปปิ้ง', 'เงินเดือน', 'อื่นๆ'];
+    let currentSummaryTab = 'monthly';
+
+    function navigate(v) {
+      ['home', 'voice', 'categories', 'monthly', 'all'].forEach(p => document.getElementById('view-' + p).classList.add('hidden'));
+      document.getElementById('view-' + v).classList.remove('hidden');
+      if(v === 'voice') updateCategoryDropdown();
+      if(v === 'monthly') renderSummary();
+      render();
+    }
+
+    function updateCategoryDropdown() {
+      let select = document.getElementById('form-cat');
+      select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function addCategory() {
+      let input = document.getElementById('new-cat-input');
+      let val = input.value.trim();
+      if(val && !cats.includes(val)) {
+        cats.push(val);
+        input.value = '';
+        render();
+      }
+    }
+
+    function deleteCategory(index) {
+      if(cats.length <= 1) { alert('ต้องมีหมวดหมู่อย่างน้อย 1 หมวดหมู่'); return; }
+      cats.splice(index, 1);
+      render();
+    }
+
+    function deleteTx(id) {
+      txs = txs.filter(t => t.id !== id);
+      render();
+      if(!document.getElementById('view-monthly').classList.contains('hidden')) renderSummary();
+    }
+
+    function render() {
+      localStorage.setItem('mm_tx', JSON.stringify(txs));
+      localStorage.setItem('mm_cats', JSON.stringify(cats));
+
+      let inc = 0, exp = 0;
+      let html = txs.map(t => {
+        if(t.type === 'income') inc += t.amount; else exp += t.amount;
+        return `
+          <div class="glass-card p-3.5 flex justify-between items-center text-xs">
+            <div>
+              <div class="font-semibold text-white">${t.title}</div>
+              <div class="text-[10px] text-slate-400">${t.cat} • ${t.date}</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="font-bold ${t.type==='income'?'text-emerald-400':'text-rose-400'}">${t.type==='income'?'+':'-'}€${t.amount.toFixed(2)}</span>
+              <button onclick="deleteTx(${t.id})" class="text-slate-500 hover:text-rose-400 p-1"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+          </div>`;
+      }).join('');
+
+      if(txs.length === 0) {
+        html = `<div class="text-center text-slate-500 text-xs py-6 glass-card">ยังไม่มีรายการบันทึก</div>`;
+      }
+
+      document.getElementById('home-recent-list').innerHTML = html;
+      document.getElementById('all-list').innerHTML = html;
+      document.getElementById('home-income').innerText = '€ ' + inc.toFixed(2);
+      document.getElementById('home-expense').innerText = '€ ' + exp.toFixed(2);
+      let balance = inc - exp;
+      let balEl = document.getElementById('home-balance');
+      balEl.innerText = '€ ' + balance.toFixed(2);
+      balEl.className = `text-3xl font-bold mt-1.5 ${balance < 0 ? 'text-rose-400' : 'text-white'}`;
+      document.getElementById('cat-list').innerHTML = cats.map((c, i) => `
+        <div class="glass-card p-3 text-xs flex justify-between items-center">
+          <span class="text-white font-medium">${c}</span>
+          <button onclick="deleteCategory(${i})" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-trash-can"></i></button>
+        </div>
+      `).join('');
+    }
+
+    function switchSummaryTab(tab) {
+      currentSummaryTab = tab;
+      document.getElementById('tab-btn-monthly').className = `flex-1 py-2 rounded-xl text-xs font-bold ${tab === 'monthly' ? 'bg-sky-600 text-white' : 'bg-white/10 text-slate-300'}`;
+      document.getElementById('tab-btn-all').className = `flex-1 py-2 rounded-xl text-xs font-bold ${tab === 'all' ? 'bg-sky-600 text-white' : 'bg-white/10 text-slate-300'}`;
+      renderSummary();
+    }
+
+    function renderSummary() {
+      let totalInc = txs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      let totalExp = txs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      document.getElementById('summary-total-net').innerText = '€ ' + (totalInc - totalExp).toFixed(2);
+
+      let contentHtml = '';
+      if(currentSummaryTab === 'monthly') {
+        // Group by rawDate (Month)
+        let months = [...new Set(txs.map(t => t.rawDate || '2026-10'))].sort().reverse();
+        contentHtml = months.map(m => {
+          let mTx = txs.filter(t => (t.rawDate || '2026-10') === m);
+          let mInc = mTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+          let mExp = mTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+          return `
+            <div class="glass-card p-4 space-y-2">
+              <div class="flex justify-between items-center text-xs font-bold text-sky-300 border-b border-white/10 pb-2">
+                <span>เดือน: ${m}</span>
+                <span>สุทธิ: €${(mInc - mExp).toFixed(2)}</span>
+              </div>
+              <div class="flex justify-between text-xs text-slate-300">
+                <span class="text-emerald-400">รายรับ: +€${mInc.toFixed(2)}</span>
+                <span class="text-rose-400">รายจ่าย: -€${mExp.toFixed(2)}</span>
+              </div>
+            </div>`;
+        }).join('');
+      } else {
+        contentHtml = `
+          <div class="glass-card p-4 space-y-2 text-xs">
+            <div class="font-bold text-sky-300 pb-2 border-b border-white/10">ภาพรวมประวัติทั้งหมด</div>
+            <div class="flex justify-between text-slate-300"><span>จำนวนรายการทั้งหมด</span><span class="font-bold">${txs.length} รายการ</span></div>
+            <div class="flex justify-between text-emerald-400"><span>รายรับรวม</span><span class="font-bold">+€${totalInc.toFixed(2)}</span></div>
+            <div class="flex justify-between text-rose-400"><span>รายจ่ายรวม</span><span class="font-bold">-€${totalExp.toFixed(2)}</span></div>
+          </div>`;
+      }
+      document.getElementById('summary-content').innerHTML = contentHtml;
+    }
+
+    function saveTx() {
+      let type = document.getElementById('form-type').value;
+      let cat = document.getElementById('form-cat').value;
+      let title = document.getElementById('form-title').value.trim() || 'รายการทั่วไป';
+      let amount = parseFloat(document.getElementById('form-amount').value) || 0;
+      
+      if(amount <= 0) { alert('กรุณากรอกจำนวนเงินให้ถูกต้อง'); return; }
+
+      let now = new Date();
+      let rawDate = now.toISOString().slice(0, 7);
+      let dateStr = 'วันนี้ ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+      txs.unshift({ id: Date.now(), title, cat, amount, type, date: dateStr, rawDate });
+      document.getElementById('form-title').value = '';
+      document.getElementById('form-amount').value = '';
+      navigate('home');
+    }
+
+    // ฟังก์ชันสั่งงานด้วยเสียง & จัดหมวดหมู่อัตโนมัติ (Smart Auto-Categorization)
+    let recognition;
+    function toggleSpeech() {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('เบราว์เซอร์นี้ไม่รองรับการสั่งงานด้วยเสียง (แนะนำให้ใช้ Safari บน iOS)');
+        return;
+      }
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = 'th-TH'; // รองรับภาษาไทย (หรือเปลี่ยนเป็น de-DE ได้ถ้าต้องการพูดเยอรมัน)
+      recognition.interimResults = false;
+
+      let micBtn = document.getElementById('mic-btn');
+      let micIcon = document.getElementById('mic-icon');
+      let statusEl = document.getElementById('voice-status');
+
+      micBtn.classList.add('pulse-ring', 'bg-emerald-500');
+      micIcon.className = "fa-solid fa-waveform";
+      statusEl.innerText = "กำลังฟังอยู่... พูดเลย!";
+
+      recognition.onresult = function(event) {
+        let speechText = event.results[0][0].transcript;
+        statusEl.innerText = `ได้ยิน: "${speechText}"`;
+        parseVoiceInput(speechText);
+      };
+
+      recognition.onerror = function() {
+        statusEl.innerText = "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง";
+        resetMicUI();
+      };
+
+      recognition.onend = function() {
+        resetMicUI();
+      };
+
+      recognition.start();
+    }
+
+    function resetMicUI() {
+      let micBtn = document.getElementById('mic-btn');
+      let micIcon = document.getElementById('mic-icon');
+      if(micBtn) {
+        micBtn.classList.remove('pulse-ring', 'bg-emerald-500');
+        micIcon.className = "fa-solid fa-microphone";
+      }
+    }
+
+    function parseVoiceInput(text) {
+      // แยกตัวเงินจากคำพูด
+      let numbers = text.match(/\d+(\.\d+)?/g);
+      let amount = numbers ? parseFloat(numbers[0]) : 0;
+      
+      // วิเคราะห์ประเภท รายรับ / รายจ่าย
+      let type = 'expense';
+      if(text.includes('เงินเดือน') || text.includes('รายรับ') || text.includes('ได้เงิน') || text.includes('โบนัส')) {
+        type = 'income';
+      }
+
+      // จัดหมวดหมู่อัตโนมัติ (Auto-Categorization) จากคีย์เวิร์ด
+      let cat = 'อื่นๆ';
+      let lower = text.toLowerCase();
+      if(lower.includes('rewe') || lower.includes('อาหาร') || lower.includes('กิน') || lower.includes('กาแฟ') || lower.includes('7-eleven') || lower.includes('ซุปเปอร์')) {
+        cat = 'อาหาร & เครื่องดื่ม';
+      } else if(lower.includes('รถ') || lower.includes('น้ำมัน') || lower.includes('เดินทาง') ||lower.includes('ตั๋ว') || lower.includes('bsh')) {
+        cat = 'เดินทาง';
+      } else if(lower.includes('ช้อป') || lower.includes('เสื้อผ้า') || lower.includes('ซื้อของ')) {
+        cat = 'ช้อปปิ้ง';
+      } else if(lower.includes('เงินเดือน') || lower.includes('รายรับ')) {
+        cat = 'เงินเดือน';
+      }
+
+      // นำค่าที่แกะได้ใส่ฟอร์มและบันทึกอัตโนมัติ
+      document.getElementById('form-type').value = type;
+      document.getElementById('form-cat').value = cat;
+      document.getElementById('form-title').value = text;
+      document.getElementById('form-amount').value = amount > 0 ? amount : '';
+
+      if(amount > 0) {
+        setTimeout(() => { saveTx(); }, 800);
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
